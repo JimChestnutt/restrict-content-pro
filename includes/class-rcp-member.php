@@ -134,6 +134,7 @@ class RCP_Member extends WP_User {
 
 		$ret      = false;
 		$old_date = get_user_meta( $this->ID, 'rcp_expiration', true ); // This calls user meta directly to avoid retrieving the pending date
+		$new_date = date( 'Y-m-d H:i:s', strtotime( $new_date, current_time( 'timestamp' ) ) ); // Ensure the date is in the proper format
 
 		if( $old_date !== $new_date ) {
 

@@ -249,6 +249,14 @@ class RCP_Payment_Gateway_Stripe extends RCP_Payment_Gateway {
 
 			try {
 
+				// Attempt to close invoice even if auto_renew is not set
+                if( isset( $temp_invoice ) ) {
+                    $invoice = \Stripe\Invoice::retrieve( $temp_invoice->id );
+                    $invoice->closed = true;
+                    $invoice->save();
+                    unset( $temp_invoice, $invoice );
+                }
+
 				$charge = \Stripe\Charge::create( apply_filters( 'rcp_stripe_charge_create_args', array(
 					'amount'         => round( ( $this->amount + $this->signup_fee ) * rcp_stripe_get_currency_multiplier(), 0 ), // amount in cents
 					'currency'       => strtolower( $this->currency ),

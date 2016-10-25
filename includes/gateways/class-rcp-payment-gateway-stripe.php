@@ -159,12 +159,6 @@ class RCP_Payment_Gateway_Stripe extends RCP_Payment_Gateway {
 					$customer->account_balance = $customer->account_balance + ( $this->signup_fee * rcp_stripe_get_currency_multiplier() ); // Add additional amount to initial payment (in cents)
 					$customer->save();
 
-					if( isset( $temp_invoice ) ) {
-						$invoice = \Stripe\Invoice::retrieve( $temp_invoice->id );
-						$invoice->closed = true;
-						$invoice->save();
-						unset( $temp_invoice, $invoice );
-					}
 				}
 
 				// clean up any past due or unpaid subscriptions before upgrading/downgrading
@@ -249,14 +243,6 @@ class RCP_Payment_Gateway_Stripe extends RCP_Payment_Gateway {
 
 			try {
 
-				// Attempt to close invoice even if auto_renew is not set
-                if( isset( $temp_invoice ) ) {
-                    $invoice = \Stripe\Invoice::retrieve( $temp_invoice->id );
-                    $invoice->closed = true;
-                    $invoice->save();
-                    unset( $temp_invoice, $invoice );
-                }
-
 				$charge = \Stripe\Charge::create( apply_filters( 'rcp_stripe_charge_create_args', array(
 					'amount'         => round( ( $this->amount + $this->signup_fee ) * rcp_stripe_get_currency_multiplier(), 0 ), // amount in cents
 					'currency'       => strtolower( $this->currency ),
@@ -327,6 +313,14 @@ class RCP_Payment_Gateway_Stripe extends RCP_Payment_Gateway {
 		}
 
 		if ( $paid ) {
+
+			// Attempt to close temporary invoice
+            if( isset( $temp_invoice ) ) {
+                $invoice = \Stripe\Invoice::retrieve( $temp_invoice->id );
+                $invoice->closed = true;
+                $invoice->save();
+                unset( $temp_invoice, $invoice );
+            }
 
 			// If this is a one-time signup and the customer has an existing subscription, we need to cancel it
 			if( ! $this->auto_renew && $member->just_upgraded() && rcp_can_member_cancel( $member->ID ) ) {
